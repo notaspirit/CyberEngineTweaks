@@ -1,29 +1,59 @@
 #pragma once
+#include "scripting/LuaWindowManager.h"
 
 namespace sol_ImGui
 {
+/*
+ *  @returns true if the window should be drawn
+ */
+inline bool HandleWindowState(const std::string& name, ImGuiWindowFlags& flags)
+{
+    if (!LuaWindowManager::windows.contains(name))
+        LuaWindowManager::windows.insert({name, LuaWindowState()});
+
+    LuaWindowState& state = LuaWindowManager::windows.at(name);
+
+    if (state.isLocked)
+    {
+        flags |= ImGuiWindowFlags_NoMove;
+        flags |= ImGuiWindowFlags_NoResize;
+    }
+
+    return state.isEnabled;
+}
+
 // Windows
 inline bool Begin(const std::string& name)
 {
-    return ImGui::Begin(name.c_str());
+    ImGuiWindowFlags window_flags = ImGuiWindowFlags_None;
+    if (HandleWindowState(name, window_flags))
+        return ImGui::Begin(name.c_str(), nullptr, window_flags);
+    return false;
 }
 inline bool Begin(const std::string& name, int flags)
 {
-    return ImGui::Begin(name.c_str(), nullptr, flags);
+    if (HandleWindowState(name, flags))
+        return ImGui::Begin(name.c_str(), nullptr, flags);
+    return false;
 }
 inline std::tuple<bool, bool> Begin(const std::string& name, bool open)
 {
-    if (!open)
-        return std::make_tuple(false, false);
-    const bool shouldDraw = ImGui::Begin(name.c_str(), &open);
-    return std::make_tuple(open, open && shouldDraw);
+    ImGuiWindowFlags window_flags = ImGuiWindowFlags_None;
+    if (HandleWindowState(name, window_flags) && open)
+    {
+        const bool shouldDraw = ImGui::Begin(name.c_str(), &open);
+        return std::make_tuple(open, open && shouldDraw);
+    }
+    return std::make_tuple(false, false);
 }
 inline std::tuple<bool, bool> Begin(const std::string& name, bool open, int flags)
 {
-    if (!open)
-        return std::make_tuple(false, false);
-    const bool shouldDraw = ImGui::Begin(name.c_str(), &open, flags);
-    return std::make_tuple(open, open && shouldDraw);
+    if (HandleWindowState(name, flags) && open)
+    {
+        const bool shouldDraw = ImGui::Begin(name.c_str(), &open, flags);
+        return std::make_tuple(open, open && shouldDraw);
+    }
+    return std::make_tuple(false, false);
 }
 inline void End()
 {

@@ -3,6 +3,7 @@
 #include "D3D12.h"
 #include "Options.h"
 #include "Utils.h"
+#include "scripting/LuaWindowManager.h"
 
 #include <CET.h>
 #include <imgui_impl/dx12.h>

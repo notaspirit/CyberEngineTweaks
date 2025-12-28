@@ -2,6 +2,8 @@
 
 #include "Overlay.h"
 
+#include "scripting/LuaWindowManager.h"
+
 #include <CET.h>
 
 #include <d3d12/D3D12.h>
@@ -262,8 +264,30 @@ Overlay::~Overlay()
 
 void Overlay::DrawToolbar()
 {
-    const auto itemWidth = GetAlignedItemWidth(7);
+    const auto itemWidth = GetAlignedItemWidth(8);
     auto& persistentState = m_persistentState.Overlay;
+
+    if (ImGui::BeginMenu("Windows"))
+    {
+        ImGuiContext* ctx = ImGui::GetCurrentContext();
+        ImVector<ImGuiWindow*>& windows = ctx->Windows;
+        for (ImGuiWindow* window : windows)
+        {
+            if (!LuaWindowManager::windows.contains(window->Name))
+                LuaWindowManager::windows.insert({window->Name, LuaWindowState()});
+
+            LuaWindowState& state = LuaWindowManager::windows.at(window->Name);
+
+            if (ImGui::MenuItem(std::format("[{}] {}", state.isEnabled ? "x" : " ", window->Name).c_str()))
+            {
+                state.isEnabled = !state.isEnabled;
+            }
+        }
+
+        ImGui::EndMenu();
+    }
+
+    ImGui::SameLine();
 
     ImGui::PushStyleColor(ImGuiCol_Button, persistentState.ConsoleToggled ? ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive) : ImGui::GetStyleColorVec4(ImGuiCol_Button));
     if (ImGui::Button("Console", ImVec2(itemWidth, 0)))
